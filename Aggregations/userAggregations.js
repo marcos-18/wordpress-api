@@ -79,7 +79,6 @@ const getUsersWithDetails = async() => {
     }
 };
 
-
 const getSingleUserDetails = async(user_id) => {
     try {
         const userObjectId = new mongoose.Types.ObjectId(user_id);
@@ -163,7 +162,5 @@ const getSingleUserDetails = async(user_id) => {
         throw error;
     }
 };
-
-
 
 module.exports = { getUsersWithDetails, getSingleUserDetails };

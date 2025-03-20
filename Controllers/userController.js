@@ -4,9 +4,7 @@ const mongoose = require('mongoose');
 const User = require('../Models/User');
 const UserMeta = require('../Models/UserMeta');
 const { userSchema } = require('../Validations/userValidation');
-const { getUsersWithDetails } = require("../Aggregations/userAggregations");
-const { getSingleUserDetails } = require("../Aggregations/userAggregations");
-
+const { getUsersWithDetails, getSingleUserDetails } = require("../Aggregations/userAggregations");
 
 const DEFAULT_CUSTOMER_ROLE_ID = new mongoose.Types.ObjectId('67d811f76bc807b2739977d8'); // Default "Customer" role
 

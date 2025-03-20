@@ -19,4 +19,23 @@ const authMiddleware = (req, res, next) => {
     }
 };
 
-module.exports = authMiddleware;
+const adminMiddleware = (req, res, next) => {
+    const token = req.header("Authorization"); // Get token from header
+    if (!token) {
+        return res.status(401).json({ error: "Access Denied. No token provided." });
+    }
+    try {
+        const verified = jwt.verify(token.replace("Bearer ", ""), process.env.JWT_SECRET); // Verify token
+        req.user = verified; // Attach decoded user data to request object
+
+        console.log("User ID from Token:", req.user.userId); // Log user ID
+        console.log("User Email from Token:", req.user.user_email); // Log user email
+
+        return false
+        next();
+    } catch (error) {
+        return res.status(400).json({ error: "Invalid Token" });
+    }
+};
+
+module.exports = { authMiddleware, adminMiddleware };
