@@ -4,7 +4,7 @@ const mongoose = require('mongoose');
 const User = require('../Models/User');
 const UserMeta = require('../Models/UserMeta');
 const { userSchema } = require('../Validations/userValidation');
-const { userAggregations } = require("../Aggregations/userAggregations");
+const { getUsersWithDetails } = require("../Aggregations/userAggregations");
 
 
 const DEFAULT_CUSTOMER_ROLE_ID = new mongoose.Types.ObjectId('67d811f76bc807b2739977d8'); // Default "Customer" role
@@ -71,6 +71,30 @@ const registerUser = async(req, res) => {
     }
 };
 
+const login = async(req, res) => {
+    try {
+        const { user_email, user_pass } = req.body;
+
+        // Check if user exists
+        const user = await User.findOne({ user_email });
+        if (!user) return res.status(400).json({ error: "Invalid credentials" });
+
+        // Check password
+        const isMatch = await bcrypt.compare(user_pass, user.user_pass);
+        if (!isMatch) return res.status(400).json({ error: "Invalid credentials" });
+
+        const token = jwt.sign({ userId: user._id, user_email: user.user_email },
+            process.env.JWT_SECRET, // Use process.env to get the secret
+            { expiresIn: "1h" }
+        );
+
+        res.json({ message: "Login successful", token });
+    } catch (error) {
+        console.error("Login error:", error); // Log full error
+        res.status(500).json({ error: "Internal Server Error", details: error.message });
+    }
+};
+
 const getUserslist = async(req, res) => {
     try {
         const users = await User.find({}, { user_pass: 0, __v: 0 }); // Fetch users, hide password & version
@@ -99,5 +123,31 @@ const getUserMeta = async(req, res) => {
     }
 };
 
+const getUserslistwithrole = async(req, res) => {
+    try {
+        const users = await getUsersWithDetails(); // Call the function to get users
 
-module.exports = { registerUser, getUserslist, getUserMeta };
+        res.status(200).json({ success: true, users }); // Add success flag for better API response
+    } catch (error) {
+        console.error("Error fetching users:", error);
+        res.status(500).json({ success: false, error: "Internal server error" });
+    }
+};
+
+const getsingleuserdetails = async(req, res) => {
+    try {
+        let { user_id } = req.body;
+
+        if (!user_id) {
+            return res.status(400).json({ error: "User ID is required" });
+        }
+
+
+        res.status(200).json({ success: true, user_id });
+    } catch (error) {
+        console.error("Error fetching user:", error);
+        res.status(500).json({ success: false, error: "Internal server error" });
+    }
+};
+
+module.exports = { registerUser, getUserslist, getUserMeta, getUserslistwithrole, login, getsingleuserdetails };
