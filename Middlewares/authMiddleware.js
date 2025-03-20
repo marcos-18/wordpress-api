@@ -24,15 +24,17 @@ const adminMiddleware = (req, res, next) => {
     if (!token) {
         return res.status(401).json({ error: "Access Denied. No token provided." });
     }
+
     try {
         const verified = jwt.verify(token.replace("Bearer ", ""), process.env.JWT_SECRET); // Verify token
         req.user = verified; // Attach decoded user data to request object
 
-        console.log("User ID from Token:", req.user.userId); // Log user ID
-        console.log("User Email from Token:", req.user.user_email); // Log user email
+        // Check if user role is admin
+        if (req.user.role !== "admin") {
+            return res.status(403).json({ error: "Access Denied. Admins only." });
+        }
 
-        return false
-        next();
+        next(); // Proceed to next middleware or route handler
     } catch (error) {
         return res.status(400).json({ error: "Invalid Token" });
     }

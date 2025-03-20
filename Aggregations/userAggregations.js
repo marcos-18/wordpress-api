@@ -1,4 +1,5 @@
 const mongoose = require("mongoose");
+const bcrypt = require('bcrypt');
 const User = require("../Models/User");
 const Role = require("../Models/Role");
 const UserMeta = require("../Models/UserMeta");
@@ -163,4 +164,61 @@ const getSingleUserDetails = async(user_id) => {
     }
 };
 
-module.exports = { getUsersWithDetails, getSingleUserDetails };
+
+
+const updateSingleUserDetails = async(user_id, updateData) => {
+    try {
+        const { first_name, last_name, user_email, user_role, user_pass, user_status } = updateData;
+
+        let updatedFields = {};
+
+        // Update only if values are provided (not empty or null)
+        if (user_email) updatedFields.user_email = user_email;
+        if (user_role) updatedFields.user_role = user_role;
+        if (user_status !== undefined) updatedFields.user_status = user_status; // Boolean field
+
+        // Hash password only if provided
+        if (user_pass) {
+            const hashedPassword = await bcrypt.hash(user_pass, 10);
+            updatedFields.user_pass = hashedPassword;
+        }
+
+        // Step 1: Fetch user meta details to construct display_name
+        const existingFirstName = await UserMeta.findOne({ user_id, meta_key: "first_name" });
+        const existingLastName = await UserMeta.findOne({ user_id, meta_key: "last_name" });
+
+        const newFirstName = first_name || (existingFirstName ? existingFirstName.meta_value : "");
+        const newLastName = last_name || (existingLastName ? existingLastName.meta_value : "");
+
+        // Construct display_name if first_name or last_name is updated
+        if (first_name || last_name) {
+            updatedFields.display_name = `${newFirstName} ${newLastName}`.trim();
+        }
+
+        // Step 2: Update User Collection
+        const userUpdateResult = await User.updateOne({ _id: new mongoose.Types.ObjectId(user_id) }, { $set: updatedFields });
+
+        // Step 3: Update UserMeta Collection for first_name & last_name
+        const metaUpdates = [];
+        if (first_name) metaUpdates.push({ meta_key: "first_name", meta_value: first_name });
+        if (last_name) metaUpdates.push({ meta_key: "last_name", meta_value: last_name });
+
+        if (metaUpdates.length > 0) {
+            const bulkOperations = metaUpdates.map((meta) => ({
+                updateOne: {
+                    filter: { user_id: new mongoose.Types.ObjectId(user_id), meta_key: meta.meta_key },
+                    update: { $set: { meta_value: meta.meta_value } },
+                    upsert: true, // Insert if not exists
+                },
+            }));
+            await UserMeta.bulkWrite(bulkOperations);
+        }
+
+        return { success: true, message: "User updated successfully" };
+    } catch (error) {
+        console.error("Error updating user details:", error);
+        throw error;
+    }
+};
+
+module.exports = { getUsersWithDetails, getSingleUserDetails, updateSingleUserDetails };

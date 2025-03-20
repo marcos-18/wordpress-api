@@ -4,7 +4,8 @@ const mongoose = require('mongoose');
 const User = require('../Models/User');
 const UserMeta = require('../Models/UserMeta');
 const { userSchema } = require('../Validations/userValidation');
-const { getUsersWithDetails, getSingleUserDetails } = require("../Aggregations/userAggregations");
+const { getUsersWithDetails, getSingleUserDetails, updateSingleUserDetails } = require("../Aggregations/userAggregations");
+
 
 const DEFAULT_CUSTOMER_ROLE_ID = new mongoose.Types.ObjectId('67d811f76bc807b2739977d8'); // Default "Customer" role
 
@@ -69,7 +70,6 @@ const registerUser = async(req, res) => {
         return res.status(500).json({ error: 'Internal server error' });
     }
 };
-
 const login = async(req, res) => {
     try {
         const { user_email, user_pass } = req.body;
@@ -82,14 +82,21 @@ const login = async(req, res) => {
         const isMatch = await bcrypt.compare(user_pass, user.user_pass);
         if (!isMatch) return res.status(400).json({ error: "Invalid credentials" });
 
-        const token = jwt.sign({ userId: user._id, user_email: user.user_email },
-            process.env.JWT_SECRET, // Use process.env to get the secret
-            { expiresIn: "1h" }
+        // Fetch user details (including role)
+        const userDetails = await getSingleUserDetails(user._id);
+        if (!userDetails) return res.status(404).json({ error: "User details not found" });
+
+        const token = jwt.sign({
+                userId: user._id,
+                user_email: user.user_email,
+                role: userDetails.role_name // Add role to token
+            },
+            process.env.JWT_SECRET, { expiresIn: "1h" }
         );
 
         res.json({ message: "Login successful", token });
     } catch (error) {
-        console.error("Login error:", error); // Log full error
+        console.error("Login error:", error);
         res.status(500).json({ error: "Internal Server Error", details: error.message });
     }
 };
@@ -154,4 +161,24 @@ const getsingleuserdetails = async(req, res) => {
     }
 };
 
-module.exports = { registerUser, getUserslist, getUserMeta, getUserslistwithrole, login, getsingleuserdetails };
+const updateUserDetails = async(req, res) => {
+    try {
+        const userId = req.params.user_id;
+
+        // Check if user exists
+        const user = await User.findById(userId);
+        if (!user) return res.status(404).json({ error: "User not found" });
+
+        // Call aggregation function to update user & meta details
+        const result = await updateSingleUserDetails(userId, req.body);
+
+        return res.status(200).json(result);
+    } catch (error) {
+        console.error("Error in updateUserDetails:", error);
+        return res.status(500).json({ error: "Internal Server Error" });
+    }
+};
+
+
+
+module.exports = { registerUser, getUserslist, getUserMeta, getUserslistwithrole, login, getsingleuserdetails, updateUserDetails };
