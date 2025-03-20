@@ -5,6 +5,7 @@ const User = require('../Models/User');
 const UserMeta = require('../Models/UserMeta');
 const { userSchema } = require('../Validations/userValidation');
 const { getUsersWithDetails } = require("../Aggregations/userAggregations");
+const { getSingleUserDetails } = require("../Aggregations/userAggregations");
 
 
 const DEFAULT_CUSTOMER_ROLE_ID = new mongoose.Types.ObjectId('67d811f76bc807b2739977d8'); // Default "Customer" role
@@ -142,8 +143,13 @@ const getsingleuserdetails = async(req, res) => {
             return res.status(400).json({ error: "User ID is required" });
         }
 
+        const user = await getSingleUserDetails(user_id);
 
-        res.status(200).json({ success: true, user_id });
+        if (!user) {
+            return res.status(404).json({ error: "User not found" });
+        }
+
+        res.status(200).json({ success: true, user });
     } catch (error) {
         console.error("Error fetching user:", error);
         res.status(500).json({ success: false, error: "Internal server error" });
