@@ -4,7 +4,7 @@ const mongoose = require('mongoose');
 const User = require('../Models/User');
 const UserMeta = require('../Models/UserMeta');
 const { userSchema } = require('../Validations/userValidation');
-const { getUsersWithDetails, getSingleUserDetails, updateSingleUserDetails } = require("../Aggregations/userAggregations");
+const { getUsersWithDetails, getSingleUserDetails, updateSingleUserDetails, deleteUserAllDetails } = require("../Aggregations/userAggregations");
 
 
 const DEFAULT_CUSTOMER_ROLE_ID = new mongoose.Types.ObjectId('67d811f76bc807b2739977d8'); // Default "Customer" role
@@ -179,6 +179,26 @@ const updateUserDetails = async(req, res) => {
     }
 };
 
+const deleteUserDetails = async(req, res) => {
+    try {
+        const userId = req.params.user_id;
+        // Check if user exists
+        const user = await User.findById(userId);
+        if (!user) return res.status(404).json({ error: "User not found" });
 
 
-module.exports = { registerUser, getUserslist, getUserMeta, getUserslistwithrole, login, getsingleuserdetails, updateUserDetails };
+        // Call aggregation function to update user & meta details
+        const result = await deleteUserAllDetails(userId);
+
+        return res.status(200).json(result);
+
+    } catch (error) {
+        console.error("Error in deleteUserDetails:", error);
+        res.status(500).json({ error: "Internal Server Error", details: error.message });
+        // return res.status(500).json({ error: "Internal Server Error" });
+    }
+
+};
+
+
+module.exports = { registerUser, getUserslist, getUserMeta, getUserslistwithrole, login, getsingleuserdetails, updateUserDetails, deleteUserDetails };

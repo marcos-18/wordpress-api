@@ -4,8 +4,9 @@ require('dotenv').config();
 const express = require('express');
 const connectDB = require('./db');
 const userRoutes = require('./Routes/userRoutes');
-
 const roleRoutes = require('./Routes/roles');
+const postRoutes = require('./Routes/postRoutes');
+
 
 
 const app = express();
@@ -17,10 +18,14 @@ connectDB();
 // Middleware to parse JSON
 app.use(express.json());
 
-// Use user routes
-app.use('/api/users', userRoutes);
 // Use role routes
 app.use('/api/roles', roleRoutes);
+// Use user routes
+app.use('/api/users', userRoutes);
+// Use user post
+app.use('/api/post', postRoutes);
+
+
 app.get('/', (req, res) => {
     res.send('Welcome to the WordPress API-like project!');
 });

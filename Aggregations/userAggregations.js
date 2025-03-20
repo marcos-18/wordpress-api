@@ -164,8 +164,6 @@ const getSingleUserDetails = async(user_id) => {
     }
 };
 
-
-
 const updateSingleUserDetails = async(user_id, updateData) => {
     try {
         const { first_name, last_name, user_email, user_role, user_pass, user_status } = updateData;
@@ -221,4 +219,28 @@ const updateSingleUserDetails = async(user_id, updateData) => {
     }
 };
 
-module.exports = { getUsersWithDetails, getSingleUserDetails, updateSingleUserDetails };
+const deleteUserAllDetails = async(user_id) => {
+    try {
+        // Convert user_id to ObjectId
+        const objectId = new mongoose.Types.ObjectId(user_id);
+
+        // Delete user from Users collection
+        const userResult = await User.deleteOne({ _id: objectId });
+
+        // Delete user meta details from UserMetas collection
+        const userMetaResult = await UserMeta.deleteMany({ user_id: objectId });
+
+        if (userResult.deletedCount === 0) {
+            return { success: false, message: "User not found" };
+        }
+
+        return { success: true, message: "User deleted successfully" };
+
+    } catch (error) {
+        console.error("Error deleting user details:", error);
+        throw error;
+    }
+
+};
+
+module.exports = { getUsersWithDetails, getSingleUserDetails, updateSingleUserDetails, deleteUserAllDetails };

@@ -2,7 +2,6 @@
 const express = require('express');
 const router = express.Router();
 const userController = require('../Controllers/userController');
-//const authMiddleware = require('../middlewares/authMiddleware');
 const { authMiddleware, adminMiddleware } = require("../Middlewares/authMiddleware");
 
 // Route to register a new user
@@ -17,8 +16,9 @@ router.get('/getUsers-ListWithRole', adminMiddleware, userController.getUserslis
 router.post("/get-single-user-details", authMiddleware, userController.getsingleuserdetails);
 // Route to get  user usermeta with ID
 router.post("/user-meta", authMiddleware, userController.getUserMeta);
-
 // Route to update  user details and usermeta with ID
 router.put("/update-user/:user_id", authMiddleware, userController.updateUserDetails);
+// Route to Delete user details and usermeta with ID
+router.delete("/delete-user/:user_id", authMiddleware, userController.deleteUserDetails);
 
 module.exports = router;
