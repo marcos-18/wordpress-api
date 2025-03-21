@@ -2,6 +2,7 @@ const mongoose = require("mongoose");
 const Post = require("../Models/Post");
 const PostMeta = require("../Models/postMeta");
 const User = require("../Models/User");
+const slugify = require("slugify");
 
 const getPostsWithUsers = async() => {
     return await Post.aggregate([{
@@ -50,7 +51,6 @@ const getPostsWithUsers = async() => {
         },
     ]);
 };
-
 const getSinglePostUser = async(userLogin) => {
     return await User.aggregate([{
             $match: { user_login: userLogin }, // Match user by login
@@ -102,9 +102,6 @@ const getSinglePostUser = async(userLogin) => {
         },
     ]);
 };
-
-
-
 const deleteUserPosts = async(post_id) => {
     // Delete post
     try {
@@ -122,5 +119,71 @@ const deleteUserPosts = async(post_id) => {
 
 
 };
+const updateUserPosts = async(post_id, UpdateData) => {
+    try {
+        // Validate MongoDB ObjectId
+        if (!mongoose.isValidObjectId(post_id)) {
+            return { error: "Invalid post ID format" };
+        }
 
-module.exports = { getPostsWithUsers, getSinglePostUser, deleteUserPosts };
+        const { post_author, post_content, post_title, post_excerpt, post_status, post_name, post_parent, post_image, image_id } = UpdateData;
+
+        let updatedPostFields = {};
+
+        // Update `posts` collection (only if values are provided)
+        if (post_content) updatedPostFields.post_content = post_content;
+        if (post_excerpt) updatedPostFields.post_excerpt = post_excerpt;
+        if (post_status) updatedPostFields.post_status = post_status;
+        if (post_name) updatedPostFields.post_name = post_name;
+        if (post_parent) updatedPostFields.post_parent = post_parent;
+        if (post_author) updatedPostFields.post_author = post_author;
+        if (post_title) updatedPostFields.post_title = post_title;
+        if (post_image) updatedPostFields.post_image = post_image;
+
+        // Update the `posts` collection
+        const updatedPost = await Post.findByIdAndUpdate(post_id, { $set: updatedPostFields }, { new: true });
+
+        if (!updatedPost) {
+            return { error: "Post not found" };
+        }
+
+        // Update `postmetas` collection (Each field as a separate document)
+        const metaUpdates = [];
+
+        if (post_author) {
+            metaUpdates.push(
+                PostMeta.updateOne({ post_id, meta_key: "post_author" }, { $set: { meta_value: post_author } }, { upsert: true })
+            );
+        }
+
+        if (post_title) {
+            metaUpdates.push(
+                PostMeta.updateOne({ post_id, meta_key: "post_title" }, { $set: { meta_value: post_title } }, { upsert: true })
+            );
+        }
+
+        if (post_image) {
+            metaUpdates.push(
+                PostMeta.updateOne({ post_id, meta_key: "post_image" }, { $set: { meta_value: post_image } }, { upsert: true })
+            );
+        }
+
+        if (image_id) {
+            metaUpdates.push(
+                PostMeta.updateOne({ post_id, meta_key: "image_id" }, { $set: { meta_value: image_id } }, { upsert: true })
+            );
+        }
+
+        // Execute all meta updates in parallel
+        if (metaUpdates.length > 0) {
+            await Promise.all(metaUpdates);
+        }
+
+        return { message: "Post updated successfully", updatedPost };
+    } catch (error) {
+        console.error("Error updating post:", error);
+        return { error: "Server error", details: error.message };
+    }
+};
+
+module.exports = { getPostsWithUsers, getSinglePostUser, deleteUserPosts, updateUserPosts };

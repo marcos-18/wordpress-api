@@ -3,7 +3,7 @@ const Post = require('../Models/Post');
 const PostMeta = require('../Models/postMeta');
 const { postValidation } = require('../Validations/postValidation');
 const slugify = require("slugify");
-const { getPostsWithUsers, getSinglePostUser, deleteUserPosts } = require("../Aggregations/postAggregations");
+const { getPostsWithUsers, getSinglePostUser, deleteUserPosts, updateUserPosts } = require("../Aggregations/postAggregations");
 
 const createnewPost = async(req, res) => {
     try {
@@ -99,8 +99,6 @@ const getAllPostsWithSingleUsers = async(req, res) => {
     }
 
 };
-
-
 const deletePost = async(req, res) => {
     try {
         const post_id = req.params.id;
@@ -125,5 +123,30 @@ const deletePost = async(req, res) => {
         res.status(500).json({ message: "Server error", error: error.message });
     }
 };
+const updatePostData = async(req, res) => {
+    try {
+        const post_id = req.params.id;
+        // Validate MongoDB ObjectId
+        if (!mongoose.isValidObjectId(post_id)) {
+            return res.status(400).json({ error: "Invalid post ID format" });
+        }
 
-module.exports = { createnewPost, getAllPostsWithUsers, getAllPostsWithSingleUsers, deletePost };
+        // Check if post exists before deleting
+        const foundPost = await Post.findById(post_id);
+        if (!foundPost) {
+            return res.status(404).json({ error: "Post ID not found" });
+        }
+
+        // Call aggregation function to delete post and related data
+        const result = await updateUserPosts(post_id, req.body);
+
+        return res.status(200).json({ result });
+
+    } catch (error) {
+        console.error("Error updating post:", error);
+        res.status(500).json({ message: "Server error", error: error.message });
+    }
+
+};
+
+module.exports = { createnewPost, getAllPostsWithUsers, getAllPostsWithSingleUsers, deletePost, updatePostData };
