@@ -221,28 +221,69 @@ const updateSingleUserDetails = async(user_id, updateData) => {
     }
 };
 
+// const deleteUserAllDetails = async(user_id) => {
+//     try {
+//         // Convert user_id to ObjectId
+//         const objectId = new mongoose.Types.ObjectId(user_id);
+
+//         // Delete user from Users collection
+//         const userResult = await User.deleteOne({ _id: objectId });
+
+//         // Delete user meta details from UserMetas collection
+//         const userMetaResult = await UserMeta.deleteMany({ user_id: objectId });
+
+//         if (userResult.deletedCount === 0) {
+//             return { success: false, message: "User not found" };
+//         }
+
+//         return { success: true, message: "User deleted successfully" };
+
+//     } catch (error) {
+//         console.error("Error deleting user details:", error);
+//         throw error;
+//     }
+
+// };
+
 const deleteUserAllDetails = async(user_id) => {
     try {
-        // Convert user_id to ObjectId
-        const objectId = new mongoose.Types.ObjectId(user_id);
-
-        // Delete user from Users collection
-        const userResult = await User.deleteOne({ _id: objectId });
-
-        // Delete user meta details from UserMetas collection
-        const userMetaResult = await UserMeta.deleteMany({ user_id: objectId });
-
-        if (userResult.deletedCount === 0) {
-            return { success: false, message: "User not found" };
+        if (!mongoose.isValidObjectId(user_id)) {
+            return { success: false, message: "Invalid user ID format" };
         }
 
-        return { success: true, message: "User deleted successfully" };
+        const objectId = new mongoose.Types.ObjectId(user_id);
 
+        const result = await User.aggregate([{
+                $match: { _id: objectId } // Find the user
+            },
+            {
+                $lookup: {
+                    from: "usermetas", // Assuming UserMetas collection is named 'usermetas'
+                    localField: "_id",
+                    foreignField: "user_id",
+                    as: "userMetaDetails"
+                }
+            },
+            {
+                $facet: {
+                    deleteUser: [{ $match: { _id: objectId } }, { $limit: 1 }], // Select user for deletion
+                    deleteUserMeta: [{ $match: { "userMetaDetails.user_id": objectId } }]
+                }
+            }
+        ]);
+
+        // Delete operations outside aggregation (since MongoDB doesn't support delete inside $facet)
+        if (result[0].deleteUser.length > 0) {
+            await User.deleteOne({ _id: objectId });
+            await UserMeta.deleteMany({ user_id: objectId });
+            return { success: true, message: "User and all associated details deleted successfully" };
+        } else {
+            return { success: false, message: "User not found" };
+        }
     } catch (error) {
         console.error("Error deleting user details:", error);
-        throw error;
+        return { success: false, message: "Server error", details: error.message };
     }
-
 };
 
 module.exports = { getUsersWithDetails, getSingleUserDetails, updateSingleUserDetails, deleteUserAllDetails };

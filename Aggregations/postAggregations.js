@@ -102,23 +102,63 @@ const getSinglePostUser = async(userLogin) => {
         },
     ]);
 };
+// const deleteUserPosts = async(post_id) => {
+//     // Delete post
+//     try {
+//         const postResult = await Post.deleteOne({ _id: post_id });
+//         const postMetaResult = await PostMeta.deleteMany({ post_id: post_id });
+//         if (postResult.deletedCount === 0) {
+//             return { success: false, message: "Post not found" };
+//         }
+
+//         return { success: true, message: "Post deleted successfully" };
+//     } catch (error) {
+//         console.error("Error deleting user details:", error);
+//         throw error;
+//     }
+// };
+
 const deleteUserPosts = async(post_id) => {
-    // Delete post
     try {
-        const postResult = await Post.deleteOne({ _id: post_id });
-        const postMetaResult = await PostMeta.deleteMany({ post_id: post_id });
-        if (postResult.deletedCount === 0) {
-            return { success: false, message: "Post not found" };
+        if (!mongoose.isValidObjectId(post_id)) {
+            return { success: false, message: "Invalid post ID format" };
         }
 
-        return { success: true, message: "Post deleted successfully" };
+        const objectId = new mongoose.Types.ObjectId(post_id);
+
+        const result = await Post.aggregate([{
+                $match: { _id: objectId } // Find the post
+            },
+            {
+                $lookup: {
+                    from: "postmetas", // Assuming PostMetas collection is named 'postmetas'
+                    localField: "_id",
+                    foreignField: "post_id",
+                    as: "postMetaDetails"
+                }
+            },
+            {
+                $facet: {
+                    deletePost: [{ $match: { _id: objectId } }, { $limit: 1 }], // Select post for deletion
+                    deletePostMeta: [{ $match: { "postMetaDetails.post_id": objectId } }]
+                }
+            }
+        ]);
+
+        // Delete operations outside aggregation (since MongoDB aggregation can't perform deletes)
+        if (result[0].deletePost.length > 0) {
+            await Post.deleteOne({ _id: objectId });
+            await PostMeta.deleteMany({ post_id: objectId });
+            return { success: true, message: "Post and all associated metadata deleted successfully" };
+        } else {
+            return { success: false, message: "Post not found" };
+        }
     } catch (error) {
-        console.error("Error deleting user details:", error);
-        throw error;
+        console.error("Error deleting post details:", error);
+        return { success: false, message: "Server error", details: error.message };
     }
-
-
 };
+
 const updateUserPosts = async(post_id, UpdateData) => {
     try {
         // Validate MongoDB ObjectId
