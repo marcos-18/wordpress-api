@@ -6,6 +6,7 @@ const connectDB = require('./db');
 const userRoutes = require('./Routes/userRoutes');
 const roleRoutes = require('./Routes/roles');
 const postRoutes = require('./Routes/postRoutes');
+const imageRoutes = require('./Routes/imageRoutes');
 
 
 
@@ -24,7 +25,8 @@ app.use('/api/roles', roleRoutes);
 app.use('/api/users', userRoutes);
 // Use user post
 app.use('/api/post', postRoutes);
-
+// use to upload image
+app.use("/api/images", imageRoutes);
 
 app.get('/', (req, res) => {
     res.send('Welcome to the WordPress API-like project!');

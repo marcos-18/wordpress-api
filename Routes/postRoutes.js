@@ -5,4 +5,7 @@ const { authMiddleware, adminMiddleware } = require("../Middlewares/authMiddlewa
 
 // Route to create a new Post
 router.post('/createPost', authMiddleware, postController.createnewPost);
+router.get("/posts-with-users", adminMiddleware, postController.getAllPostsWithUsers);
+router.get("/posts-with-Singleusers", authMiddleware, postController.getAllPostsWithSingleUsers);
+router.delete("/delete-post/:id", authMiddleware, postController.deletePost);
 module.exports = router;

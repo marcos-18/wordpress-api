@@ -3,6 +3,8 @@ const bcrypt = require('bcrypt');
 const User = require("../Models/User");
 const Role = require("../Models/Role");
 const UserMeta = require("../Models/UserMeta");
+const Post = require("../Models/Post");
+const postMeta = require("../Models/postMeta");
 
 const getUsersWithDetails = async() => {
     try { // Fetch users with their roles and usermeta
