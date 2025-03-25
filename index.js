@@ -7,6 +7,7 @@ const userRoutes = require('./Routes/userRoutes');
 const roleRoutes = require('./Routes/roles');
 const postRoutes = require('./Routes/postRoutes');
 const imageRoutes = require('./Routes/imageRoutes');
+const premissionRoutes = require('./Routes/permissionRoutes');
 
 
 
@@ -18,7 +19,8 @@ connectDB();
 
 // Middleware to parse JSON
 app.use(express.json());
-
+// Use role Premission Routes
+app.use('/api/premissions', premissionRoutes);
 // Use role routes
 app.use('/api/roles', roleRoutes);
 // Use user routes

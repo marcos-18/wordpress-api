@@ -43,29 +43,15 @@ const createnewPost = async(req, res) => {
 
         const savedPost = await newPost.save();
 
-        // Insert metadata (e.g., post title and user ID)
+        // Insert metadata as a single object
         await PostMeta.create({
             post_id: savedPost._id,
-            meta_key: "post_title",
-            meta_value: post_title,
-        });
-
-        await PostMeta.create({
-            post_id: savedPost._id,
-            meta_key: "post_author",
-            meta_value: post_author,
-        });
-
-        await PostMeta.create({
-            post_id: savedPost._id,
-            meta_key: "post_image",
-            meta_value: post_image,
-        });
-
-        await PostMeta.create({
-            post_id: savedPost._id,
-            meta_key: "image_id",
-            meta_value: image_id,
+            meta_data: {
+                post_title,
+                post_author,
+                post_image,
+                image_id
+            }
         });
 
         res.status(201).json({ message: "Post created successfully", post: savedPost });
@@ -74,6 +60,8 @@ const createnewPost = async(req, res) => {
         res.status(500).json({ message: "Server error", error: err.message });
     }
 };
+
+
 const getAllPostsWithUsers = async(req, res) => {
     try {
         const posts = await getPostsWithUsers();
