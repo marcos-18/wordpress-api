@@ -60,8 +60,6 @@ const createnewPost = async(req, res) => {
         res.status(500).json({ message: "Server error", error: err.message });
     }
 };
-
-
 const getAllPostsWithUsers = async(req, res) => {
     try {
         const posts = await getPostsWithUsers();

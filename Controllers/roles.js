@@ -20,6 +20,7 @@ const createRole = async(req, res) => {
             name: name.toLowerCase(), // Convert to lowercase for consistency
             status: status !== undefined ? status : true // Default status true if not provided
         });
+        //  return res.status(200).json({ user_role });
 
         await newRole.save();
         return res.status(201).json({ message: "Role created successfully", role: newRole });
